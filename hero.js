@@ -136,9 +136,13 @@ console.log(JSON.stringify(mineStats));
 
   if(myHero.health < 100 && healthWellDistance === 1)
     return healthWellDirection;
-  if (myHero.health < 40 || myHero.health < 80 && (healthWellDistance < 10 || teamMemberDistance < 10)) {
+  if (myHero.health < 40 || myHero.health < 80 && (healthWellDistance < 2 || teamMemberDistance < 2)) {
     return healthWellDirection;
   }
+  if (myHero.health > 10 && enemyDistance === 1) {
+    return enemyDirection;
+  }
+  
   // Unwise assassin
   if (myHero.health > 70) {
       if(enemyDistance < mineDistance){
@@ -148,7 +152,7 @@ console.log(JSON.stringify(mineStats));
         return mineDirection;
       }
   }
-  if (myHero.health >= 40) {
+  if (myHero.health >= 50) {
       if( mineDistance < healthWellDistance)
         return mineDirection;
       else if(healthWellDistance < mineDistance)
