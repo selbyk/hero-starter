@@ -4,7 +4,7 @@ If you'd like to test your hero code locally,
 run this code using node (must have node installed).
 
 Please note that you DO NOT need to do this to enter javascript
-battle, it is simply an easy way to test whether your new hero 
+battle, it is simply an easy way to test whether your new hero
 code will work in the javascript battle.
 
 To run:
@@ -33,7 +33,7 @@ var enemyMoveFunction = function(gameData, helpers) {
 }
 
 //Makes a new game with a 5x5 board
-var game = new Game(5);
+var game = new Game(10);
 
 //Add a health well in the middle of the board
 game.addHealthWell(2,2);
@@ -56,7 +56,7 @@ console.log('About to start the game!  Here is what the board looks like:');
 game.board.inspect();
 
 //Play a very short practice game
-var turnsToPlay = 15;
+var turnsToPlay = 1000;
 
 for (var i=0; i<turnsToPlay; i++) {
   var hero = game.activeHero;
