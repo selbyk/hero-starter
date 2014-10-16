@@ -153,15 +153,8 @@ node test_your_hero_code.js
   * Diamond mines will be denoted by "DXX" where the Xs are numbers
   * Health wells will be denoted by "WWW"
   * Remember, `test_your_hero_code.js` is there for you! Feel free to modify it however you like--we will only ever pull in and use your `hero.js` and `helpers.js` files in each daily battle.
-  * 
 
-| Category        | Are           | Cool  |
-| ------------- |:-------------:| -----:|
-| col 3 is      | right-aligned | $1600 |
-| col 2 is      | centered      |   $12 |
-| zebra stripes | are neat      |    $1 |
 
-Health Recovered	  6  4 per game
 | Category	        | Stats         |
 | ---------------- | ------------- |
 | Games Played     | 5             |
