@@ -533,16 +533,18 @@ var enemyMoveFunction = function(gameData, helpers) {
 }*/
 
 //Makes a new game with a 5x5 board
-var game = new Game(10);
+var game = new Game(15);
 
 //Add a health well in the middle of the board
 game.addHealthWell(2,2);
 game.addHealthWell(7,9);
 game.addHealthWell(3,6);
+game.addHealthWell(10,10);
 
 //Add diamond mines on either side of the health well
 game.addDiamondMine(2,1);
 game.addDiamondMine(2,3);
+game.addDiamondMine(13,13);
 
 game.addDiamondMine(6,6);
 
@@ -551,9 +553,11 @@ game.addDiamondMine(4,8);
 //Add your hero in the top left corner of the map (team 0)
 game.addHero(0, 0, 'MyHero', 0);
 
+
 //Add an enemy hero in the bottom left corner of the map (team 1)
 game.addHero(4, 4, 'Enemy', 1);
-game.addHero(4, 5, 'Enemy', 1);
+game.addHero(10, 13, 'Enemy', 1);
+game.addHero(7, 2, 'Enemy', 1);
 
 console.log('About to start the game!  Here is what the board looks like:');
 
@@ -586,7 +590,7 @@ var playGame = function(){
     game.board.inspect();
     if(turnsToPlay-- > 0)
       playGame();
-  }, 250);
+  }, 50);
 }
 
 playGame();

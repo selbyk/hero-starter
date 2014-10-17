@@ -86,10 +86,10 @@ var kill = null;
 var move = function(gameData, helpers) {
   var littleSelbyK = gameData.activeHero;
 
-  console.log(greeting);
+  //console.log(greeting);
 
-  if(kill!=null)
-    console.log("I'm going to kill " + kill);
+  //if(kill!=null)
+    //console.log("I'm going to kill " + kill);
 
   /* Intuition */
   var intuition = {
@@ -169,7 +169,7 @@ var move = function(gameData, helpers) {
       bestDirection = 'West';
     }
 
-    console.log('I think the best direction to go is' + bestDirection);
+    //console.log('I think the best direction to go is' + bestDirection);
     return bestDirection;
   };
 
@@ -188,7 +188,7 @@ var move = function(gameData, helpers) {
   var enemyDistance = enemyStats.distance === undefined ? 0 : enemyStats.distance;
   var enemyDirection = enemyStats.direction === undefined ? 'Stay' : enemyStats.direction;
 
-  console.log("Enemy is " + enemyStats.distance + " " + enemyStats.direction);
+  //console.log("Enemy is " + enemyStats.distance + " " + enemyStats.direction);
 
   var strongerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health > littleSelbyK.health) {
@@ -199,7 +199,7 @@ var move = function(gameData, helpers) {
   var strongerEnemyDistance = strongerEnemyStats.distance === undefined ? 0 : strongerEnemyStats.distance;
   var strongerEnemyDirection = strongerEnemyStats.direction === undefined ? 'Stay' : strongerEnemyStats.direction;
 
-  console.log("Stronger enemy is " + strongerEnemyStats.distance + " " + strongerEnemyStats.direction);
+  //console.log("Stronger enemy is " + strongerEnemyStats.distance + " " + strongerEnemyStats.direction);
 
   var weakerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health < littleSelbyK.health) {
@@ -210,7 +210,7 @@ var move = function(gameData, helpers) {
   var weakerEnemyDistance = weakerEnemyStats.distance === undefined ? 0 : weakerEnemyStats.distance;
   var weakerEnemyDirection = weakerEnemyStats.direction === undefined ? 'Stay' : weakerEnemyStats.direction;
 
-  console.log("Weaker enemy is " + weakerEnemyStats.distance + " " + weakerEnemyStats.direction);
+  //console.log("Weaker enemy is " + weakerEnemyStats.distance + " " + weakerEnemyStats.direction);
 
   //Get stats on the nearest health well
   var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
@@ -221,7 +221,7 @@ var move = function(gameData, helpers) {
 
   var healthWellDistance = healthWellStats.distance === undefined ? 0 : healthWellStats.distance;
   var healthWellDirection = healthWellStats.direction === undefined ? 'Stay' : healthWellStats.direction;
-  console.log("I can find a health well " + healthWellDistance + " units " + healthWellDirection);
+  //console.log("I can find a health well " + healthWellDistance + " units " + healthWellDirection);
 
   var teamStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'Hero' && boardTile.team == littleSelbyK.team) {
@@ -230,7 +230,7 @@ var move = function(gameData, helpers) {
   });
   var teamMemberDistance = teamStats.distance === undefined ? 0 : teamStats.distance;
   var teamMemberDirection = teamStats.direction === undefined ? 'Stay' : teamStats.direction;
-  console.log("My nearest ally is " + teamMemberDistance + " units " + teamMemberDirection);
+  //console.log("My nearest ally is " + teamMemberDistance + " units " + teamMemberDirection);
 
   var mineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'DiamondMine') {
@@ -245,7 +245,7 @@ var move = function(gameData, helpers) {
   var mineDistance = mineStats.distance === undefined ? 0 : mineStats.distance;
   var mineDirection = mineStats.direction === undefined ? 'Stay' : mineStats.direction;
 
-  console.log("There is a mine at " + mineDistance + " " + mineDirection);
+  //console.log("There is a mine at " + mineDistance + " " + mineDirection);
 
   //Get the path info object
   var unownedMineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
@@ -261,7 +261,7 @@ var move = function(gameData, helpers) {
   });
   var unownedMineDistance = unownedMineStats.distance === undefined ? 0 : unownedMineStats.distance;
   var unownedMineDirection = unownedMineStats.direction === undefined ? 'Stay' : unownedMineStats.direction;
-  console.log("There is an unowned mine at " + unownedMineDistance + " " + unownedMineDirection);
+  //console.log("There is an unowned mine at " + unownedMineDistance + " " + unownedMineDirection);
 
 
   //Get the path info object
@@ -278,16 +278,16 @@ var move = function(gameData, helpers) {
   });
   var nonTeamMineDistance = nonTeamMineStats.distance === undefined ? 0 : nonTeamMineStats.distance;
   var nonTeamMineDirection = nonTeamMineStats.direction === undefined ? 'Stay' : nonTeamMineStats.direction;
-  console.log("There is an unowned mine at " + nonTeamMineDistance + " " + nonTeamMineDirection);
+  //console.log("There is an unowned mine at " + nonTeamMineDistance + " " + nonTeamMineDirection);
 
-  console.log(JSON.stringify(littleSelbyK, null, 2));
+  //console.log(JSON.stringify(littleSelbyK, null, 2));
 
   /* Instinct */
   // Fill to 100 when near health well
   if(littleSelbyK.health < 100 && ( healthWellDistance === 1 || healthWellDistance === 2))
     return healthWellDirection;
   if(enemyDistance === 2 || enemyDistance === 1)
-    if(healthWellDistance == 1)
+    if(healthWellDistance == 2)
       return opposite(enemyDirection);
 
   if(unownedMineDistance === 1 && nonTeamMineDistance == 1)
@@ -299,36 +299,34 @@ var move = function(gameData, helpers) {
     learn(healthWellDirection, -1*healthWellDistance/2);
     learn(teamMemberDirection, -1*teamMemberDistance/2);
     learn(enemyDirection, enemyDistance/4);
-    learn(weakerEnemyDirection, weakerEnemyDistance);
+    learn(weakerEnemyDirection, weakerEnemyDistance/2);
     learn(unownedMineDirection, unownedMineDistance);
-    learn(nonTeamMineDirection, nonTeamMineDistance);
+    learn(nonTeamMineDirection, nonTeamMineDistance/4);
+    learn(mineDirection, -1*mineDistance/2);
   }
 
   // strong enemies ok
-  learn(strongerEnemyDirection, -1*strongerEnemyDistance);
+  learn(strongerEnemyDirection, -1*strongerEnemyDistance/2);
   // weak enemies good
-  learn(weakerEnemyDirection, weakerEnemyDistance);
+  learn(weakerEnemyDirection, weakerEnemyDistance/2);
   // mines are good
-  learn(unownedMineDirection, unownedMineDistance);
-  learn(nonTeamMineDirection, nonTeamMineDistance);
+  learn(nonTeamMineDirection, nonTeamMineDistance/2);
   // your mines are bad
-  learn(mineDirection, -1*mineDistance);
+  learn(mineDirection, -1*mineDistance/2);
 
   // Low health senario
-  if(littleSelbyK.health < 70){
+  if(littleSelbyK.health <= 70){
     // Health well super good
-
+    learn(healthWellDirection, healthWellDistance);
     // Teak member direction also pretty good
-    learn(teamMemberDirection, 2);
+    learn(teamMemberDirection, teamMemberDistance);
     // Enemy direction super bad
-    learn(enemyDirection, -1*enemyDistance);
+    learn(enemyDirection, -1*enemyDistance/2);
     // strong enemies super super bad
-    learn(strongerEnemyDirection, -1*strongerEnemyDistance);
+    learn(strongerEnemyDirection, -1*strongerEnemyDistance/2);
     // even weak enemies bad
     learn(weakerEnemyDirection, weakerEnemyDistance);
-    // mines are bad
-    learn(mineDirection, -1*mineDistance);
-  } else if(littleSelbyK.health <= 30){
+  } else if(littleSelbyK.health <= 40){
     // Health and health/protection is always the best option if there's nothing else
     learn(healthWellDirection, 1);
     // Teak member direction is always a decent choice
@@ -339,11 +337,9 @@ var move = function(gameData, helpers) {
     learn(strongerEnemyDirection, -1*strongerEnemyDistance);
     // even weak enemies bad
     learn(weakerEnemyDirection, -1*weakerEnemyDistance);
-    // even weak enemies bad
-    learn(mineDirection, -1*mineDistance);
   }
-  console.log('INTUITION');
-  console.log(JSON.stringify(intuition));
+  //console.log('INTUITION');
+  //console.log(JSON.stringify(intuition));
   return withTheWind();
 }
 
