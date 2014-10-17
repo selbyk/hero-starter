@@ -283,20 +283,26 @@ var move = function(gameData, helpers) {
   if(weakerEnemyDistance === 2)
     return weakerEnemyDirection;
 
-  // health good
-  learn(healthWellDirection, -1*healthWellDistance);
-  // team and health good
-  learn(teamMemberDirection, teamMemberDistance);
-  // mines are kinda good
-  learn(mineDirection, mineDistance);
-  learn(unownedMineDirection, unownedMineDistance);
-  learn(nonTeamMineDirection, nonTeamMineDistance);
+  // at 100 health, go adventure and be wreckless
+  if(littleSelbyK.health === 100){
+    learn(healthWellDirection, -1*healthWellDistance);
+    learn(teamMemberDirection, -1*teamMemberDistance);
+    learn(strongerEnemyDirection, strongerEnemyDistance);
+    learn(weakerEnemyDirection, weakerEnemyDistance);
+    learn(mineDirection, mineDistance);
+    learn(unownedMineDirection, unownedMineDistance);
+    learn(nonTeamMineDirection, nonTeamMineDistance);
+  }
+
   // strong enemies bad
   learn(strongerEnemyDirection, -1*strongerEnemyDistance);
   // weak enemies good
   learn(weakerEnemyDirection, weakerEnemyDistance);
-  // Mines!
+  // mines are good
+  learn(mineDirection, mineDistance);
   learn(unownedMineDirection, unownedMineDistance);
+  learn(nonTeamMineDirection, nonTeamMineDistance);
+
 
   // Low health senario
   if(littleSelbyK.health < 50){
