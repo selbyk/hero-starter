@@ -79,9 +79,17 @@
 //   }
 // };
 
+var greeting = 'greetings, friends\n';
+var kill = null;
+
 // // The "Safe Diamond Miner"
 var move = function(gameData, helpers) {
   var littleSelbyK = gameData.activeHero;
+
+  console.log(greeting);
+
+  if(kill!=null)
+    console.log("I'm going to kill " + kill);
 
   /* Intuition */
   var intuition = {
@@ -93,7 +101,7 @@ var move = function(gameData, helpers) {
   };
 
   var learn = function(direction, goodnessNumber){
-    goodnessNumber = 15/goodnessNumber;
+    goodnessNumber = gameData.board.lengthOfSide/goodnessNumber;
     switch(direction){
       case 'North':
         intuition.north = intuition.north + goodnessNumber;
@@ -109,7 +117,8 @@ var move = function(gameData, helpers) {
         break;
       case 'Stay':
       default:
-        intuition.stay = intuition.stay + goodnessNumber;
+        var choices = ['North', 'South', 'East', 'West'];
+        learn(choices[Math.floor(Math.random()*4)], goodnessNumber);
         break;
     }
   };
@@ -182,7 +191,7 @@ var move = function(gameData, helpers) {
   console.log("Enemy is " + enemyStats.distance + " " + enemyStats.direction);
 
   var strongerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health > hero.health) {
+    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health > littleSelbyK.health) {
       return true;
     }
   });
@@ -193,7 +202,7 @@ var move = function(gameData, helpers) {
   console.log("Stronger enemy is " + strongerEnemyStats.distance + " " + strongerEnemyStats.direction);
 
   var weakerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health < hero.health) {
+    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health < littleSelbyK.health) {
       return true;
     }
   });
@@ -209,29 +218,30 @@ var move = function(gameData, helpers) {
       return true;
     }
   });
-  console.log(JSON.stringify(healthWellStats));
 
   var healthWellDistance = healthWellStats.distance === undefined ? 0 : healthWellStats.distance;
   var healthWellDirection = healthWellStats.direction === undefined ? 'Stay' : healthWellStats.direction;
   console.log("I can find a health well " + healthWellDistance + " units " + healthWellDirection);
+
   var teamStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'Hero' && boardTile.team == littleSelbyK.team) {
       return true;
     }
   });
-
   var teamMemberDistance = teamStats.distance === undefined ? 0 : teamStats.distance;
   var teamMemberDirection = teamStats.direction === undefined ? 'Stay' : teamStats.direction;
-  console.log(JSON.stringify(teamStats));
   console.log("My nearest ally is " + teamMemberDistance + " units " + teamMemberDirection);
 
   var mineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'DiamondMine') {
-      return true;
+      if (boardTile.owner && boardTile.owner.id === littleSelbyK.id) {
+        return true;
+      } else {
+        return false;
+      }
     }
   });
 
-  console.log(JSON.stringify(mineStats));
   var mineDistance = mineStats.distance === undefined ? 0 : mineStats.distance;
   var mineDirection = mineStats.direction === undefined ? 'Stay' : mineStats.direction;
 
@@ -270,44 +280,44 @@ var move = function(gameData, helpers) {
   var nonTeamMineDirection = nonTeamMineStats.direction === undefined ? 'Stay' : nonTeamMineStats.direction;
   console.log("There is an unowned mine at " + nonTeamMineDistance + " " + nonTeamMineDirection);
 
-  console.log(JSON.stringify(littleSelbyK));
+  console.log(JSON.stringify(littleSelbyK, null, 2));
 
   /* Instinct */
   // Fill to 100 when near health well
-  if(littleSelbyK.health < 100 && healthWellDistance === 1)
+  if(littleSelbyK.health < 100 && ( healthWellDistance === 1 || healthWellDistance === 2))
     return healthWellDirection;
-  if(strongerEnemyDistance === 2)
-    return opposite(strongerEnemyDirection);
-  if(strongerEnemyDistance === 1)
-    return teamMemberDirection != strongerEnemyDirection ? teamMemberDirection : healthWellDirection;
-  if(weakerEnemyDistance === 2)
-    return weakerEnemyDirection;
+  if(enemyDistance === 2 || enemyDistance === 1)
+    if(healthWellDistance == 1)
+      return opposite(enemyDirection);
+
+  if(unownedMineDistance === 1 && nonTeamMineDistance == 1)
+    if(nonTeamMineStats.owner)
+      kill = nonTeamMineStats.owner.id;
 
   // at 100 health, go adventure and be wreckless
   if(littleSelbyK.health === 100){
-    learn(healthWellDirection, -1*healthWellDistance);
-    learn(teamMemberDirection, -1*teamMemberDistance);
-    learn(strongerEnemyDirection, strongerEnemyDistance);
+    learn(healthWellDirection, -1*healthWellDistance/2);
+    learn(teamMemberDirection, -1*teamMemberDistance/2);
+    learn(enemyDirection, enemyDistance/4);
     learn(weakerEnemyDirection, weakerEnemyDistance);
-    learn(mineDirection, mineDistance);
     learn(unownedMineDirection, unownedMineDistance);
     learn(nonTeamMineDirection, nonTeamMineDistance);
   }
 
-  // strong enemies bad
+  // strong enemies ok
   learn(strongerEnemyDirection, -1*strongerEnemyDistance);
   // weak enemies good
   learn(weakerEnemyDirection, weakerEnemyDistance);
   // mines are good
-  learn(mineDirection, mineDistance);
   learn(unownedMineDirection, unownedMineDistance);
   learn(nonTeamMineDirection, nonTeamMineDistance);
-
+  // your mines are bad
+  learn(mineDirection, -1*mineDistance);
 
   // Low health senario
-  if(littleSelbyK.health < 50){
+  if(littleSelbyK.health < 70){
     // Health well super good
-    learn(healthWellDirection, 1);
+
     // Teak member direction also pretty good
     learn(teamMemberDirection, 2);
     // Enemy direction super bad
@@ -318,13 +328,13 @@ var move = function(gameData, helpers) {
     learn(weakerEnemyDirection, weakerEnemyDistance);
     // mines are bad
     learn(mineDirection, -1*mineDistance);
-  } else {
+  } else if(littleSelbyK.health <= 30){
     // Health and health/protection is always the best option if there's nothing else
     learn(healthWellDirection, 1);
     // Teak member direction is always a decent choice
     learn(teamMemberDirection, 2);
     // Enemy direction super bad
-    learn(enemyDirection, -1*enemyDistance);
+    learn(enemyDirection, -1*enemyDistance/4);
     // strong enemies super super bad
     learn(strongerEnemyDirection, -1*strongerEnemyDistance);
     // even weak enemies bad
