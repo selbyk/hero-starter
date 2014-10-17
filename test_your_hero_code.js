@@ -552,12 +552,14 @@ game.addDiamondMine(4,8);
 
 //Add your hero in the top left corner of the map (team 0)
 game.addHero(0, 0, 'MyHero', 0);
+game.addHero(0, 5, 'MyHero', 0);
 
 
 //Add an enemy hero in the bottom left corner of the map (team 1)
 game.addHero(4, 4, 'Enemy', 1);
 game.addHero(10, 13, 'Enemy', 1);
 game.addHero(7, 2, 'Enemy', 1);
+game.addHero(7, 12, 'Enemy', 1);
 
 console.log('About to start the game!  Here is what the board looks like:');
 
@@ -590,7 +592,7 @@ var playGame = function(){
     game.board.inspect();
     if(turnsToPlay-- > 0)
       playGame();
-  }, 50);
+  }, 100);
 }
 
 playGame();
