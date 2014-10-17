@@ -175,6 +175,7 @@ node test_your_hero_code.js
   * Health wells will be denoted by "WWW"
   * Remember, `test_your_hero_code.js` is there for you! Feel free to modify it however you like--we will only ever pull in and use your `hero.js` and `helpers.js` files in each daily battle.
 
+10.16.2014 - Just overhauled his brain.  Lets see if these improve.
 
 | Category	        | Stats         |
 | ---------------- | ------------- |
