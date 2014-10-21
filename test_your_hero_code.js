@@ -106,7 +106,6 @@ var enemyMoveFunction = function(gameData, helpers) {
       bestDirection = 'West';
     }
 
-    console.log('I think the best direction to go is' + bestDirection);
     return bestDirection;
   };
 
@@ -125,7 +124,6 @@ var enemyMoveFunction = function(gameData, helpers) {
   var enemyDistance = enemyStats.distance === undefined ? 0 : enemyStats.distance;
   var enemyDirection = enemyStats.direction === undefined ? 'Stay' : enemyStats.direction;
 
-  console.log("Enemy is " + enemyStats.distance + " " + enemyStats.direction);
 
   var strongerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health >= littleSelbyK.health) {
@@ -136,7 +134,6 @@ var enemyMoveFunction = function(gameData, helpers) {
   var strongerEnemyDistance = strongerEnemyStats.distance === undefined ? 0 : strongerEnemyStats.distance;
   var strongerEnemyDirection = strongerEnemyStats.direction === undefined ? 'Stay' : strongerEnemyStats.direction;
 
-  console.log("Stronger enemy is " + strongerEnemyStats.distance + " " + strongerEnemyStats.direction);
 
   var weakerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health <= littleSelbyK.health) {
@@ -147,7 +144,6 @@ var enemyMoveFunction = function(gameData, helpers) {
   var weakerEnemyDistance = weakerEnemyStats.distance === undefined ? 0 : weakerEnemyStats.distance;
   var weakerEnemyDirection = weakerEnemyStats.direction === undefined ? 'Stay' : weakerEnemyStats.direction;
 
-  console.log("Weaker enemy is " + weakerEnemyStats.distance + " " + weakerEnemyStats.direction);
 
   //Get stats on the nearest health well
   var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
@@ -155,11 +151,9 @@ var enemyMoveFunction = function(gameData, helpers) {
       return true;
     }
   });
-  console.log(JSON.stringify(healthWellStats));
 
   var healthWellDistance = healthWellStats.distance === undefined ? 0 : healthWellStats.distance;
   var healthWellDirection = healthWellStats.direction === undefined ? 'Stay' : healthWellStats.direction;
-  console.log("I can find a health well " + healthWellDistance + " units " + healthWellDirection);
   var teamStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'Hero' && boardTile.team == littleSelbyK.team) {
       return true;
@@ -168,8 +162,6 @@ var enemyMoveFunction = function(gameData, helpers) {
 
   var teamMemberDistance = teamStats.distance === undefined ? 0 : teamStats.distance;
   var teamMemberDirection = teamStats.direction === undefined ? 'Stay' : teamStats.direction;
-  console.log(JSON.stringify(teamStats));
-  console.log("My nearest ally is " + teamMemberDistance + " units " + teamMemberDirection);
 
   var mineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
     if (boardTile.type === 'DiamondMine') {
@@ -177,11 +169,9 @@ var enemyMoveFunction = function(gameData, helpers) {
     }
   });
 
-  console.log(JSON.stringify(mineStats));
   var mineDistance = mineStats.distance === undefined ? 0 : mineStats.distance;
   var mineDirection = mineStats.direction === undefined ? 'Stay' : mineStats.direction;
 
-  console.log("There is a mine at " + mineDistance + " " + mineDirection);
 
   //Get the path info object
   var unownedMineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
@@ -197,7 +187,6 @@ var enemyMoveFunction = function(gameData, helpers) {
   });
   var unownedMineDistance = unownedMineStats.distance === undefined ? 0 : unownedMineStats.distance;
   var unownedMineDirection = unownedMineStats.direction === undefined ? 'Stay' : unownedMineStats.direction;
-  console.log("There is an unowned mine at " + unownedMineDistance + " " + unownedMineDirection);
 
 
   //Get the path info object
@@ -214,9 +203,6 @@ var enemyMoveFunction = function(gameData, helpers) {
   });
   var nonTeamMineDistance = nonTeamMineStats.distance === undefined ? 0 : nonTeamMineStats.distance;
   var nonTeamMineDirection = nonTeamMineStats.direction === undefined ? 'Stay' : nonTeamMineStats.direction;
-  console.log("There is an unowned mine at " + nonTeamMineDistance + " " + nonTeamMineDirection);
-
-  console.log(JSON.stringify(littleSelbyK));
 
   /* Instinct */
   // Fill to 100 when near health well
@@ -281,8 +267,6 @@ var enemyMoveFunction = function(gameData, helpers) {
     // even weak enemies bad
     learn(mineDirection, -1*mineDistance);
   }
-  console.log('INTUITION');
-  console.log(JSON.stringify(intuition));
   return withTheWind();
 }
 /*function(gameData, helpers) {
@@ -533,37 +517,72 @@ var enemyMoveFunction = function(gameData, helpers) {
 }*/
 
 //Makes a new game with a 5x5 board
-var game = new Game(15);
+var game = new Game(12);
 
-//Add a health well in the middle of the board
-game.addHealthWell(2,2);
-game.addHealthWell(7,9);
-game.addHealthWell(3,6);
-game.addHealthWell(10,10);
+var spaces = [];
 
-//Add diamond mines on either side of the health well
-game.addDiamondMine(2,1);
-game.addDiamondMine(2,3);
-game.addDiamondMine(13,13);
+for(var i = 0; i < 12; ++i)
+  for(var j = 0; j < 12; ++j)
+    spaces.push({x: i, y: j});
 
-game.addDiamondMine(6,6);
+var shuffle = function(o){ //v1.0
+    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+    return o;
+};
 
-game.addDiamondMine(4,8);
+spaces = shuffle(spaces);
+
+var addHealthWells = function(min,max){
+  if(min == undefined)
+    min = 5;
+  if(max == undefined)
+    max = 5;
+  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+    space = spaces.pop();
+    game.addHealthWell(space.x,space.y);
+  }
+}
+
+var addMines = function(min,max){
+  if(min == undefined)
+    min = 5;
+  if(max == undefined)
+    max = 5;
+  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+    space = spaces.pop();
+    game.addDiamondMine(space.x,space.y);
+  }
+}
+
+var addEnemies = function(min,max){
+  if(min == undefined)
+    min = 1;
+  if(max == undefined)
+    max = 2;
+  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+    space = spaces.pop();
+    game.addHero(space.x,space.y, 'Enemy', 1);
+  }
+}
+
+var addImpassables = function(min,max){
+  if(min == undefined)
+    min = 6;
+  if(max == undefined)
+    max = 10;
+  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+    space = spaces.pop();
+    game.addImpassable(space.x,space.y, 'Enemy', 1);
+  }
+}
+
+addHealthWells();
+addMines();
+addEnemies();
+addImpassables();
 
 //Add your hero in the top left corner of the map (team 0)
 game.addHero(0, 0, 'MyHero', 0);
-game.addHero(0, 5, 'MyHero', 0);
-game.addHero(14, 14, 'MyHero', 0);
-
-
-//Add an enemy hero in the bottom left corner of the map (team 1)
-game.addHero(4, 4, 'Enemy', 1);
-game.addHero(10, 13, 'Enemy', 1);
-game.addHero(7, 2, 'Enemy', 1);
-game.addHero(7, 12, 'Enemy', 1);
-game.addHero(0, 8, 'Enemy', 1);
-game.addHero(3, 9, 'Enemy', 1);
-game.addHero(9, 10, 'Enemy', 1);
 
 console.log('About to start the game!  Here is what the board looks like:');
 
@@ -573,30 +592,42 @@ console.log('About to start the game!  Here is what the board looks like:');
 game.board.inspect();
 
 //Play a very short practice game
-var turnsToPlay = 1000;
+var turnsToPlay = 100;
 
 var playGame = function(){
+  var stats = "Stats";
+  var setStats = function(hero){
+    stats = JSON.stringify(hero, null, 2);
+  }
   setTimeout(function(){
     var hero = game.activeHero;
     var direction;
     if (hero.name === 'MyHero') {
-
       //Ask your hero brain which way it wants to move
       direction = heroMoveFunction(game, helpers);
+
     } else {
       direction = enemyMoveFunction(game, helpers);
     }
-    console.log('-----');
-    console.log('Turns left: ' + turnsToPlay + ':');
-    console.log('-----');
-    console.log(hero.name + ' tried to move ' + direction);
-    console.log(hero.name + ' owns ' + hero.mineCount + ' diamond mines')
-    console.log(hero.name + ' has ' + hero.health + ' health')
+
+
+    if (hero.name === 'MyHero'){
+      setStats(hero);
+      game.board.inspect();
+      console.log('-----');
+      console.log('Turns left: ' + turnsToPlay + ':');
+      console.log('-----');
+      console.log(hero.name + ' tried to move ' + direction);
+      console.log(hero.name + ' owns ' + hero.mineCount + ' diamond mines');
+      console.log(hero.name + ' has ' + hero.health + ' health');
+      console.log(stats);
+    }
     game.handleHeroTurn(direction);
-    game.board.inspect();
     if(turnsToPlay-- > 0)
       playGame();
-  }, 100);
+  }, 10);
 }
 
 playGame();
+
+console.log(JSON.stringify(game, null, 2));
