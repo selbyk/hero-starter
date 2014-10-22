@@ -556,9 +556,9 @@ var addMines = function(min,max){
 
 var addEnemies = function(min,max){
   if(min == undefined)
-    min = 1;
+    min = 2;
   if(max == undefined)
-    max = 2;
+    max = 3;
   for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
     space = spaces.pop();
     game.addHero(space.x,space.y, 'Enemy', 1);
@@ -592,7 +592,7 @@ console.log('About to start the game!  Here is what the board looks like:');
 game.board.inspect();
 
 //Play a very short practice game
-var turnsToPlay = 100;
+var turnsToPlay = 500;
 
 var playGame = function(){
   var stats = "Stats";
@@ -625,7 +625,7 @@ var playGame = function(){
     game.handleHeroTurn(direction);
     if(turnsToPlay-- > 0)
       playGame();
-  }, 10);
+  }, 50);
 }
 
 playGame();

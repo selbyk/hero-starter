@@ -181,26 +181,20 @@ var moves = {
 
 var greeting = 'greetings, friends\n';
 var kill = null;
+var past = 'Stay';
 
 // // The "Safe Diamond Miner"
 var move = function(gameData, helpers) {
   var littleSelbyK = gameData.activeHero;
 
+  var heroHealth = littleSelbyK.health;
+
   //console.log(greeting);
 
   //if(kill!=null)
     //console.log("I'm going to kill " + kill);
-
   /* Intuition */
   var intuition = {
-    stay: 0,
-    north: 0,
-    south: 0,
-    east: 0,
-    west: 0
-  };
-
-  var fightingIntuition = {
     stay: 0,
     north: 0,
     south: 0,
@@ -245,6 +239,70 @@ var move = function(gameData, helpers) {
     }
   };
 
+  var directionIntuition = function(direction){
+    var tile = helpers.getTileNearby(gameData.board, littleSelbyK.distanceFromTop, littleSelbyK.distanceFromLeft, direction);
+    if(!tile){
+      return 0;
+    }
+
+    /*
+      Gather all the info we need
+    */
+    var enemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, tile, function(boardTile) {
+      if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team) {
+        return true;
+      }
+    });
+    var enemyDistance = enemyStats.distance === undefined ? 9999 : enemyStats.distance;
+    var enemyDirection = enemyStats.direction === undefined ? 'Stay' : enemyStats.direction;
+    var enemyHealth = enemyStats.health === undefined ? 100 : enemyStats.health;
+    //Get stats on the nearest health well
+    var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, tile, function(boardTile) {
+      if (boardTile.type === 'HealthWell') {
+        return true;
+      }
+    });
+    var healthWellDistance = healthWellStats.distance === undefined ? 9999 : healthWellStats.distance;
+    var healthWellDirection = healthWellStats.direction === undefined ? 'Stay' : healthWellStats.direction;
+    var mineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, tile, function(boardTile) {
+      if (boardTile.type === 'DiamondMine') {
+        if (boardTile.owner && boardTile.owner.id === littleSelbyK.id) {
+          return false;
+        } else {
+          return true;
+        }
+      }
+    });
+    var mineDistance = mineStats.distance === undefined ? 9999 : mineStats.distance;
+    var mineDirection = mineStats.direction === undefined ? 'Stay' : mineStats.direction;
+    var unownedMineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, tile, function(boardTile) {
+      if (boardTile.type === 'DiamondMine') {
+        if (boardTile.owner) {
+          return boardTile.owner.id !== littleSelbyK.id;
+        } else {
+          return true;
+        }
+      } else {
+        return false;
+      }
+    });
+    var unownedMineDistance = unownedMineStats.distance === undefined ? 0 : unownedMineStats.distance;
+    var unownedMineDirection = unownedMineStats.direction === undefined ? 'Stay' : unownedMineStats.direction;
+
+    var value = 0;
+    if(enemyDistance === 2)
+      value = 144/-1;
+    else{
+      if(heroHealth < 60)
+        value = 144/healthWellDistance;
+      else
+        value = 144/unownedMineDistance;
+    }
+    value = 144/value;
+
+    return value;
+  }
+
   var opposite = function(direction){
     switch(direction){
       case 'North':
@@ -270,30 +328,38 @@ var move = function(gameData, helpers) {
     var bestDirection  = 'Stay',
         goodnessValue  = 0;
 
-    if(intuition.stay > goodnessValue){
-      goodnessValue = intuition.stay;
-      bestDirection = moves.blindMan();
-    }
-    if(intuition.north > goodnessValue){
+    if(intuition.north != null && intuition.north > goodnessValue){
       goodnessValue = intuition.north;
       bestDirection = 'North';
     }
-    if(intuition.south > goodnessValue){
+    if(intuition.south != null && intuition.south > goodnessValue){
       goodnessValue = intuition.south;
       bestDirection = 'South';
     }
-    if(intuition.east > goodnessValue){
+    if(intuition.east != null && intuition.east > goodnessValue){
       goodnessValue = intuition.east;
       bestDirection = 'East';
     }
-    if(intuition.west > goodnessValue){
+    if(intuition.west != null && intuition.west > goodnessValue){
       goodnessValue = intuition.west;
       bestDirection = 'West';
     }
+    if(intuition.stay != null && intuition.stay > goodnessValue){
+      goodnessValue = intuition.stay;
+      bestDirection = moves.blindMan();
+    }
 
+    past = opposite(bestDirection);
     //console.log('I think the best direction to go is' + bestDirection);
     return bestDirection;
   };
+
+  learn('Stay',directionIntuition('Stay'));
+  learn('North',directionIntuition('North'));
+  learn('South',directionIntuition('South'));
+  learn('East',directionIntuition('East'));
+  learn('West',directionIntuition('West'));
+
 
   /*
     Gather all the info we need
@@ -325,7 +391,7 @@ var move = function(gameData, helpers) {
   //console.log("Stronger enemy is " + strongerEnemyStats.distance + " " + strongerEnemyStats.direction);
 
   var weakerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health <= littleSelbyK.health) {
+    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health < littleSelbyK.health) {
       return true;
     }
   });
@@ -406,16 +472,45 @@ var move = function(gameData, helpers) {
 
   console.log(JSON.stringify(littleSelbyK, null, 2));
 
+  // Default settings
+  // 100% health
+  var enemy = 1,
+      health = -1,
+      mines = 1,
+      team = 1;
+
+  console.log(JSON.stringify(intuition));
+
   /* Instinct */
+  if(littleSelbyK.health < 100 && (littleSelbyK.health < 80 || healthWellDistance < 5))
+    return healthWellDirection;
+  if(enemyDistance === 1 && healthWellDistance > 2)
+    return enemyDirection;
+  if(littleSelbyK.health > 60 && ( weakerEnemyDistance < 3))
+    return  weakerEnemyDirection;
+  if(littleSelbyK.health > 60 && nonTeamMineDistance < 6)
+    return nonTeamMineDirection;
+  if(littleSelbyK.health > 60)
+    return unownedMineDirection;
+  if(unownedMineDistance < 8 && enemyDistance > 3)
+    return unownedMineDirection;
+
+  return helpers.findNearestGrave(gameData);
   // Fill to 100 when near health well
+/*  if(enemyHealth == 20 && enemyDistance == 2)
+    return enemyDirection;
 
   if(littleSelbyK.health < 100 && ( healthWellDistance < 3))
     return healthWellDirection;
-  if(littleSelbyK.health === 100 && healthWellDistance < 5 && enemyDistance < 3 && teamMemberDistance > 1){
-    learn(enemyDirection, -0.025);
-    learn(healthWellDirection, -0.025);
+  if(littleSelbyK.health > 80 && teamMemberDistance < 4 && teamMemberHealth < 80)
+    return teamMemberDirection;
+  if(enemyDistance > 2 && littleSelbyK.health > 60 && unownedMineDistance === 1)
+    return unownedMineDirection;
+  if(littleSelbyK.health === 100 && healthWellDistance <= 6 && enemyDistance < 3 && teamMemberDistance > 1){
+    learn(enemyDirection, -0.25*enemyDistance);
+    learn(healthWellDirection, -0.25*healthWellDistance);
   }
-  if(enemyDistance === 1){
+  if(littleSelbyK.health > 40 && enemyDistance === 1){
     learn(enemyDirection, 0.025);
   }
   if(enemyHealth < littleSelbyK.health && enemyDistance <= 2)
@@ -424,8 +519,7 @@ var move = function(gameData, helpers) {
     return teamMemberDirection;
   if(teamMemberDistance === 1 && enemyDistance <= 2)
     learn(enemyDirection, 0.025);
-  if(enemyDistance > 3 && littleSelbyK.health > 70 && unownedMineDistance === 1)
-    learn(unownedMineDirection, -0.025);
+
 
   if(littleSelbyK.health <= 60 && strongerEnemyDirection == healthWellDirection && strongerEnemyDistance <= healthWellDistance){
     learn(opposite(strongerEnemyDirection), 0.25*strongerEnemyDistance);
@@ -434,20 +528,25 @@ var move = function(gameData, helpers) {
 
   if(littleSelbyK.health === 100){
     if(teamMemberDistance === 1)
-      learn(teamMemberDirection, -0.25);
+      learn(teamMemberDirection, 0.25);
     if(healthWellDistance === 1){
       learn(healthWellDirection, -0.25);
       if(enemyDistance === 1)
-        learn(enemyDirection, -0.5);
+        learn(enemyDirection, -1);
     }
-    learn(weakerEnemyDirection, 0.5);
+    learn(weakerEnemyDirection, 0.25);
     learn(unownedMineDirection, 0.5);
     learn(nonTeamMineDirection, 0.25);
+    learn(enemyDirection, 0.25);
+    learn(strongerEnemyDirection, -0.25*strongerEnemyDistance);
+    learn(weakerEnemyDirection, 0.25*weakerEnemyDistance);
   }
 
   if(strongerEnemyDistance <= 3 && weakerEnemyDistance <= 3){
-    learn(healthWellDirection, 0.07*healthWellDistance);
-    learn(teamMemberDirection, 0.25*teamMemberDistance);
+    learn(strongerEnemyDirection, -1*0.07/strongerEnemyDistance);
+    learn(weakerEnemyDirection, 0.07/weakerEnemyDistance);
+    learn(healthWellDirection, 0.07/healthWellDistance);
+    learn(teamMemberDirection, 0.25/teamMemberDistance);
   }
   if(littleSelbyK.health < 100 ){
     learn(healthWellDirection, 0.07*healthWellDistance);
@@ -471,68 +570,15 @@ var move = function(gameData, helpers) {
   if(weakerEnemyDistance < 3)
     learn(weakerEnemyDirection, 0.1);
   if(littleSelbyK.health > 70){
-    learn(nonTeamMineDirection, 0.07*nonTeamMineDistance/2);
-    learn(unownedMineDirection, 0.2*unownedMineDistance/2);
+    learn(nonTeamMineDirection, 0.07*nonTeamMineDistance/3);
+    learn(unownedMineDirection, 0.2*unownedMineDistance/3);
     learn(mineDirection, -0.25);
   }
+*/
 
-  return withTheWind();
+
+  //return moves.blindMan(gameData, helpers);
 }
-
-  // Don't do things that will kill you
-/*
-  var learnCommonSense = function(){
-    if(littleSelbyK.health < 60)
-      learn(healthWellDirection, 0.25);
-    if(strongerEnemyDistance === 3)
-      learn(strongerEnemyDirection, -0.25);
-    if(weakerEnemyDistance === 1)
-      learn(weakerEnemyDirection, 0.5);
-    if(enemyDistance === 2 && (strongerEnemyDistance < 3 || weakerEnemyDistance < 3 || healingWellDistance < 2)){
-      learn(enemyDirection, -0.5);
-      learn(weakerEnemyDirection, -0.5);
-      learn(strongerEnemyDirection, -0.5);
-      learn(weakerEnemyDirection, -0.5);
-      learn(healthWellDirection, 0.25);
-    }
-    if(enemyDistance === 1)
-      learn(enemyDirection, 0.5);
-    if(healthWellDistance < 2 && enemyDistance < 2)
-      learn(enemyDirection, -1*0.5);
-    learn(weakerEnemyDirection, weakerEnemyDistance);
-    learn(healthWellDirection, healthWellDistance);
-    learn(teamMemberDirection, 2*teamMemberDistance);
-  };
-
-  var learnFighting = function(){
-    if(weakerEnemyDistance < 3)
-      learn(weakerEnemyDirection, weakerEnemyDistance/3);
-  };
-
-  var learnEcon = function(){
-    learn(unownedMineDirection, 1);
-    learn(nonTeamMineDirection, 1);
-  };
-
-  var learnSurvival = function(){
-    learn(healthWellDirection, 0.5);
-    learn(teamMemberDirection, teamMemberDistance/2);
-    if(enemyDistance === 2 || enemyDistance === 1)
-      learn(enemyDirection, -1*enemyDistance);
-    if(enemyDistance === 1)
-      learn(enemyDirection, 0.5);
-    else
-      learn(strongerEnemyDirection, -1*strongerEnemyDistance);
-  };
-
-  learnCommonSense();
-
-  if(littleSelbyK.health > 60){
-    learnFighting();
-    learnEcon();
-  } else
-    learnSurvival();*/
-
 
 //  Set our heros strategy
 //var  move =  moves.aggressor;
