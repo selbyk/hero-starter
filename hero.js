@@ -482,7 +482,7 @@ var move = function(gameData, helpers) {
   console.log(JSON.stringify(intuition));
 
   /* Instinct */
-  if(littleSelbyK.health < 100 && healthWellDistance === 1 || (littleSelbyK.health < 60 && healthWellDistance < 3) || (littleSelbyK.health < 70 && healthWellDistance < 5))
+  if(littleSelbyK.health < 100 && healthWellDistance === 1)
     return healthWellDirection;
   if(enemyDistance === 1 && healthWellDistance > 3 || enemyHealth < 50 && enemyDistance <= 2)
     return enemyDirection;
@@ -490,17 +490,17 @@ var move = function(gameData, helpers) {
     return teamMemberDirection;
   if(littleSelbyK.health > 60 && ( weakerEnemyDistance < 3))
     return  weakerEnemyDirection;
-  if(enemyDistance > 3)
-    if( unownedMineDistance < 2*nonTeamMineDistance)
-      return unownedMineDirection;
-    else
-      return nonTeamMineDirection;
-  return helpers.findNearestGrave(gameData);
+  if(strongerEnemyDistance != 2)
+    helpers.findNearestGrave(gameData);
+  if(littleSelbyK.health < 60 || (littleSelbyK.health < 70 && healthWellDistance > 5) || (littleSelbyK.health < 80 && healthWellDistance > 7))
+    return healthWellDirection;
+  if( unownedMineDistance < 2*nonTeamMineDistance)
+    return unownedMineDirection;
+  else
+    return nonTeamMineDirection;
+  if(enemyDistance > 1)
+    helpers.findNearestGrave(gameData);
 
-
-
-
-  return helpers.findNearestGrave(gameData);
   // Fill to 100 when near health well
 /*  if(enemyHealth == 20 && enemyDistance == 2)
     return enemyDirection;
