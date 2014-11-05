@@ -22,612 +22,334 @@ To run:
 var helpers = require('./helpers.js');
 var Game = require('./game_logic/Game.js');
 
+var stats = [];
+var deaths = 0;
+var wins = 0;
+var damageDone = 0;
+var gravesRobbed = 0;
+var mineCount = 0;
+var minesCaptured = 0;
+var diamondsEarned = 0;
+var healthRecovered = 0;
+var healthGiven = 0;
+
+var myHero;
+
 //Get my hero's move function ("brain")
 var heroMoveFunction = require('./hero.js');
 
+var moveNames = ['aggressor', 'healthNut',
+  'blindMan', 'priest', 'unwiseAssassin', 'carefulAssassin', 'safeDiamondMiner',
+  'selfishDiamondMiner'];
+
 //The move function ("brain") the practice enemy will use
-var enemyMoveFunction = function(gameData, helpers) {
-  var littleSelbyK = gameData.activeHero;
-
-  /* Intuition */
-  var intuition = {
-    stay: 0,
-    north: 0,
-    south: 0,
-    east: 0,
-    west: 0
-  };
-
-  var learn = function(direction, goodnessNumber){
-    goodnessNumber = 15/goodnessNumber;
-    switch(direction){
-      case 'North':
-        intuition.north = intuition.north + goodnessNumber;
-        break;
-      case 'South':
-        intuition.south = intuition.south + goodnessNumber;
-        break;
-      case 'East':
-        intuition.east = intuition.east + goodnessNumber;
-        break;
-      case 'West':
-        intuition.west = intuition.west + goodnessNumber;
-        break;
-      case 'Stay':
-      default:
-        intuition.stay = intuition.stay + goodnessNumber;
-        break;
+// Strategy definitions
+var moves = {
+  // Aggressor
+  aggressor: function(gameData, helpers) {
+    // Here, we ask if your hero's health is below 30
+    if (gameData.activeHero.health <= 30){
+      // If it is, head towards the nearest health well
+      return helpers.findNearestHealthWell(gameData);
+    } else {
+      // Otherwise, go attack someone...anyone.
+      return helpers.findNearestEnemy(gameData);
     }
-  };
+  },
 
-  var opposite = function(direction){
-    switch(direction){
-      case 'North':
-        return 'South';
-        break;
-      case 'South':
-        return 'North';
-        break;
-      case 'East':
-        return 'West';
-        break;
-      case 'West':
-        return 'East';
-        break;
-      case 'Stay':
-      default:
-        return 'Stay';
-        break;
+  // Health Nut
+  healthNut:  function(gameData, helpers) {
+    // Here, we ask if your hero's health is below 75
+    if (gameData.activeHero.health <= 75){
+      // If it is, head towards the nearest health well
+      return helpers.findNearestHealthWell(gameData);
+    } else {
+      // Otherwise, go mine some diamonds!!!
+      return helpers.findNearestNonTeamDiamondMine(gameData);
     }
-  };
+  },
 
-  var withTheWind = function(){
-    var bestDirection  = 'Stay',
-        goodnessValue  = 0;
+  // Balanced
+  balanced: function(gameData, helpers){
+    //FIXME : fix;
+    return null;
+  },
 
-    if(intuition.stay > goodnessValue){
-      goodnessValue = intuition.stay;
-      bestDirection = 'Stay';
+  // The "Northerner"
+  // This hero will walk North.  Always.
+  northener : function(gameData, helpers) {
+    var myHero = gameData.activeHero;
+    return 'North';
+  },
+
+  // The "Blind Man"
+  // This hero will walk in a random direction each turn.
+  blindMan : function(gameData, helpers) {
+    var myHero = gameData.activeHero;
+    var choices = ['North', 'South', 'East', 'West'];
+    return choices[Math.floor(Math.random()*4)];
+  },
+
+  // The "Priest"
+  // This hero will heal nearby friendly champions.
+  priest : function(gameData, helpers) {
+    var myHero = gameData.activeHero;
+    if (myHero.health < 60) {
+      return helpers.findNearestHealthWell(gameData);
+    } else {
+      return helpers.findNearestTeamMember(gameData);
     }
-    if(intuition.north > goodnessValue){
-      goodnessValue = intuition.north;
-      bestDirection = 'North';
+  },
+
+  // The "Unwise Assassin"
+  // This hero will attempt to kill the closest enemy hero. No matter what.
+  unwiseAssassin : function(gameData, helpers) {
+    var myHero = gameData.activeHero;
+    if (myHero.health < 30) {
+      return helpers.findNearestHealthWell(gameData);
+    } else {
+      return helpers.findNearestEnemy(gameData);
     }
-    if(intuition.south > goodnessValue){
-      goodnessValue = intuition.south;
-      bestDirection = 'South';
+  },
+
+  // The "Careful Assassin"
+  // This hero will attempt to kill the closest weaker enemy hero.
+  carefulAssassin : function(gameData, helpers) {
+    var myHero = gameData.activeHero;
+    if (myHero.health < 50) {
+      return helpers.findNearestHealthWell(gameData);
+    } else {
+      return helpers.findNearestWeakerEnemy(gameData);
     }
-    if(intuition.east > goodnessValue){
-      goodnessValue = intuition.east;
-      bestDirection = 'East';
-    }
-    if(intuition.west > goodnessValue){
-      goodnessValue = intuition.west;
-      bestDirection = 'West';
-    }
+  },
 
-    return bestDirection;
-  };
+  // The "Safe Diamond Miner"
+  // This hero will attempt to capture enemy diamond mines.
+  safeDiamondMiner : function(gameData, helpers) {
+    var myHero = gameData.activeHero;
 
-  /*
-    Gather all the info we need
-  */
-  var teamMemberDirection = helpers.findNearestTeamMember(gameData);
-  var healthWellDirection = helpers.findNearestHealthWell(gameData);
-
-  var enemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team) {
-      return true;
-    }
-  });
-
-  var enemyDistance = enemyStats.distance === undefined ? 0 : enemyStats.distance;
-  var enemyDirection = enemyStats.direction === undefined ? 'Stay' : enemyStats.direction;
-
-
-  var strongerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health >= littleSelbyK.health) {
-      return true;
-    }
-  });
-
-  var strongerEnemyDistance = strongerEnemyStats.distance === undefined ? 0 : strongerEnemyStats.distance;
-  var strongerEnemyDirection = strongerEnemyStats.direction === undefined ? 'Stay' : strongerEnemyStats.direction;
-
-
-  var weakerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health <= littleSelbyK.health) {
-      return true;
-    }
-  });
-
-  var weakerEnemyDistance = weakerEnemyStats.distance === undefined ? 0 : weakerEnemyStats.distance;
-  var weakerEnemyDirection = weakerEnemyStats.direction === undefined ? 'Stay' : weakerEnemyStats.direction;
-
-
-  //Get stats on the nearest health well
-  var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'HealthWell') {
-      return true;
-    }
-  });
-
-  var healthWellDistance = healthWellStats.distance === undefined ? 0 : healthWellStats.distance;
-  var healthWellDirection = healthWellStats.direction === undefined ? 'Stay' : healthWellStats.direction;
-  var teamStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team == littleSelbyK.team) {
-      return true;
-    }
-  });
-
-  var teamMemberDistance = teamStats.distance === undefined ? 0 : teamStats.distance;
-  var teamMemberDirection = teamStats.direction === undefined ? 'Stay' : teamStats.direction;
-
-  var mineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'DiamondMine') {
-      return true;
-    }
-  });
-
-  var mineDistance = mineStats.distance === undefined ? 0 : mineStats.distance;
-  var mineDirection = mineStats.direction === undefined ? 'Stay' : mineStats.direction;
-
-
-  //Get the path info object
-  var unownedMineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'DiamondMine') {
-      if (boardTile.owner) {
-        return boardTile.owner.id !== littleSelbyK.id;
-      } else {
+    //Get stats on the nearest health well
+    var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, myHero, function(boardTile) {
+      if (boardTile.type === 'HealthWell') {
         return true;
       }
+    });
+    var distanceToHealthWell = healthWellStats.distance;
+    var directionToHealthWell = healthWellStats.direction;
+
+    if (myHero.health < 40) {
+      //Heal no matter what if low health
+      return directionToHealthWell;
+    } else if (myHero.health < 100 && distanceToHealthWell === 1) {
+      //Heal if you aren't full health and are close to a health well already
+      return directionToHealthWell;
     } else {
-      return false;
+      //If healthy, go capture a diamond mine!
+      return helpers.findNearestNonTeamDiamondMine(gameData);
     }
-  });
-  var unownedMineDistance = unownedMineStats.distance === undefined ? 0 : unownedMineStats.distance;
-  var unownedMineDirection = unownedMineStats.direction === undefined ? 'Stay' : unownedMineStats.direction;
+  },
 
+  // The "Selfish Diamond Miner"
+  // This hero will attempt to capture diamond mines (even those owned by teammates).
+  selfishDiamondMiner :function(gameData, helpers) {
+    var myHero = gameData.activeHero;
 
-  //Get the path info object
-  var nonTeamMineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'DiamondMine') {
-      if (boardTile.owner) {
-        return boardTile.owner.team !== littleSelbyK.team;
-      } else {
+    //Get stats on the nearest health well
+    var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, myHero, function(boardTile) {
+      if (boardTile.type === 'HealthWell') {
         return true;
       }
+    });
+
+    var distanceToHealthWell = healthWellStats.distance;
+    var directionToHealthWell = healthWellStats.direction;
+
+    if (myHero.health < 40) {
+      //Heal no matter what if low health
+      return directionToHealthWell;
+    } else if (myHero.health < 100 && distanceToHealthWell === 1) {
+      //Heal if you aren't full health and are close to a health well already
+      return directionToHealthWell;
     } else {
-      return false;
+      //If healthy, go capture a diamond mine!
+      return helpers.findNearestUnownedDiamondMine(gameData);
     }
-  });
-  var nonTeamMineDistance = nonTeamMineStats.distance === undefined ? 0 : nonTeamMineStats.distance;
-  var nonTeamMineDirection = nonTeamMineStats.direction === undefined ? 'Stay' : nonTeamMineStats.direction;
+  },
 
-  /* Instinct */
-  // Fill to 100 when near health well
-  if(littleSelbyK.health < 100 && healthWellDistance === 1)
-    return healthWellDirection;
-  if(strongerEnemyDistance === 2)
-    return opposite(strongerEnemyDirection);
-  if(strongerEnemyDistance === 1)
-    return teamMemberDirection != strongerEnemyDirection ? teamMemberDirection : healthWellDirection;
-  if(weakerEnemyDistance === 2)
-    return weakerEnemyDirection;
-
-  // at 100 health, go adventure and be wreckless
-  if(littleSelbyK.health === 100){
-    if(strongerEnemyDirection != weakerEnemyDirection)
-      if(strongerEnemyDistance === 2)
-        return strongerEnemyDirection;
-    learn(healthWellDirection, -1*healthWellDistance/2);
-    learn(teamMemberDirection, -1*teamMemberDistance/2);
-    learn(strongerEnemyDirection, strongerEnemyDistance);
-    learn(weakerEnemyDirection, weakerEnemyDistance);
-    learn(mineDirection, mineDistance);
-    learn(unownedMineDirection, unownedMineDistance);
-    learn(nonTeamMineDirection, nonTeamMineDistance);
+  // The "Coward"
+  // This hero will try really hard not to die.
+  coward : function(gameData, helpers) {
+    return helpers.findNearestHealthWell(gameData);
   }
+ };
 
-  // strong enemies bad
-  learn(strongerEnemyDirection, -1*strongerEnemyDistance);
-  // weak enemies good
-  learn(weakerEnemyDirection, weakerEnemyDistance);
-  // mines are good
-  learn(mineDirection, mineDistance);
-  learn(unownedMineDirection, unownedMineDistance);
-  learn(nonTeamMineDirection, nonTeamMineDistance);
+//Makes a new game board
+var game;
 
+var createGame = function(){
+  game = new Game(12);
 
-  // Low health senario
-  if(littleSelbyK.health < 50){
-    // Health well super good
-    learn(healthWellDirection, 1);
-    // Teak member direction also pretty good
-    learn(teamMemberDirection, 2);
-    // Enemy direction super bad
-    learn(enemyDirection, -1*enemyDistance);
-    // strong enemies super super bad
-    learn(strongerEnemyDirection, -1*strongerEnemyDistance);
-    // even weak enemies bad
-    learn(weakerEnemyDirection, weakerEnemyDistance);
-    // mines are bad
-    learn(mineDirection, -1*mineDistance);
-  } else {
-    // Health and health/protection is always the best option if there's nothing else
-    learn(healthWellDirection, 1);
-    // Teak member direction is always a decent choice
-    learn(teamMemberDirection, 2);
-    // Enemy direction super bad
-    learn(enemyDirection, -1*enemyDistance);
-    // strong enemies super super bad
-    learn(strongerEnemyDirection, -1*strongerEnemyDistance);
-    // even weak enemies bad
-    learn(weakerEnemyDirection, -1*weakerEnemyDistance);
-    // even weak enemies bad
-    learn(mineDirection, -1*mineDistance);
-  }
-  return withTheWind();
-}
-/*function(gameData, helpers) {
-  var littleSelbyK = gameData.activeHero;
+  var spaces = [];
 
-  var intuition = {
-    stay: 0,
-    north: 0,
-    south: 0,
-    east: 0,
-    west: 0
+  for(var i = 0; i < 12; ++i)
+    for(var j = 0; j < 12; ++j)
+      spaces.push({x: i, y: j});
+
+  var shuffle = function(o){ //v1.0
+      for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+      return o;
   };
 
-  var learn = function(direction, goodnessNumber){
-    goodnessNumber = 15/goodnessNumber;
-    switch(direction){
-      case 'North':
-        intuition.north = intuition.north + goodnessNumber;
-        break;
-      case 'South':
-        intuition.south = intuition.south + goodnessNumber;
-        break;
-      case 'East':
-        intuition.east = intuition.east + goodnessNumber;
-        break;
-      case 'West':
-        intuition.west = intuition.west + goodnessNumber;
-        break;
-      case 'Stay':
-      default:
-        intuition.stay = intuition.stay + goodnessNumber;
-        break;
-    }
-  };
+  spaces = shuffle(spaces);
 
-  var opposite = function(direction){
-    switch(direction){
-      case 'North':
-        return 'South';
-        break;
-      case 'South':
-        return 'North';
-        break;
-      case 'East':
-        return 'West';
-        break;
-      case 'West':
-        return 'East';
-        break;
-      case 'Stay':
-      default:
-        return 'Stay';
-        break;
-    }
-  };
-
-  var withTheWind = function(){
-    var bestDirection  = 'Stay',
-        goodnessValue  = 0;
-
-    if(intuition.stay > goodnessValue){
-      goodnessValue = intuition.stay;
-      bestDirection = 'Stay';
-    }
-    if(intuition.north > goodnessValue){
-      goodnessValue = intuition.north;
-      bestDirection = 'North';
-    }
-    if(intuition.south > goodnessValue){
-      goodnessValue = intuition.south;
-      bestDirection = 'South';
-    }
-    if(intuition.east > goodnessValue){
-      goodnessValue = intuition.east;
-      bestDirection = 'East';
-    }
-    if(intuition.west > goodnessValue){
-      goodnessValue = intuition.west;
-      bestDirection = 'West';
-    }
-
-    console.log('I think the best direction to go is' + bestDirection);
-    return bestDirection;
-  };
-
-
-  var teamMemberDirection = helpers.findNearestTeamMember(gameData);
-  var healthWellDirection = helpers.findNearestHealthWell(gameData);
-
-  var enemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team) {
-      return true;
-    }
-  });
-
-  var enemyDistance = enemyStats.distance === undefined ? 0 : enemyStats.distance;
-  var enemyDirection = enemyStats.direction === undefined ? 'Stay' : enemyStats.direction;
-
-  console.log("Enemy is " + enemyStats.distance + " " + enemyStats.direction);
-
-  var strongerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health > hero.health) {
-      return true;
-    }
-  });
-
-  var strongerEnemyDistance = strongerEnemyStats.distance === undefined ? 0 : strongerEnemyStats.distance;
-  var strongerEnemyDirection = strongerEnemyStats.direction === undefined ? 'Stay' : strongerEnemyStats.direction;
-
-  console.log("Stronger enemy is " + strongerEnemyStats.distance + " " + strongerEnemyStats.direction);
-
-  var weakerEnemyStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team != littleSelbyK.team && boardTile.health < hero.health) {
-      return true;
-    }
-  });
-
-  var weakerEnemyDistance = weakerEnemyStats.distance === undefined ? 0 : weakerEnemyStats.distance;
-  var weakerEnemyDirection = weakerEnemyStats.direction === undefined ? 'Stay' : weakerEnemyStats.direction;
-
-  console.log("Weaker enemy is " + weakerEnemyStats.distance + " " + weakerEnemyStats.direction);
-
-  //Get stats on the nearest health well
-  var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'HealthWell') {
-      return true;
-    }
-  });
-  console.log(JSON.stringify(healthWellStats));
-
-  var healthWellDistance = healthWellStats.distance === undefined ? 0 : healthWellStats.distance;
-  var healthWellDirection = healthWellStats.direction === undefined ? 'Stay' : healthWellStats.direction;
-  console.log("I can find a health well " + healthWellDistance + " units " + healthWellDirection);
-  var teamStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'Hero' && boardTile.team == littleSelbyK.team) {
-      return true;
-    }
-  });
-
-  var teamMemberDistance = teamStats.distance === undefined ? 0 : teamStats.distance;
-  var teamMemberDirection = teamStats.direction === undefined ? 'Stay' : teamStats.direction;
-  console.log(JSON.stringify(teamStats));
-  console.log("My nearest ally is " + teamMemberDistance + " units " + teamMemberDirection);
-
-  var mineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'DiamondMine') {
-      return true;
-    }
-  });
-
-  console.log(JSON.stringify(mineStats));
-  var mineDistance = mineStats.distance === undefined ? 0 : mineStats.distance;
-  var mineDirection = mineStats.direction === undefined ? 'Stay' : mineStats.direction;
-
-  console.log("There is a mine at " + mineDistance + " " + mineDirection);
-
-  //Get the path info object
-  var unownedMineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'DiamondMine') {
-      if (boardTile.owner) {
-        return boardTile.owner.id !== littleSelbyK.id;
-      } else {
-        return true;
-      }
+  var getNorthSpace = function(){
+    space = spaces.pop();
+    if(space.x > 5){
+      spaces.push(space);
+      space = spaces.pop();
+      return getNorthSpace();
     } else {
-      return false;
+      return space;
     }
-  });
-  var unownedMineDistance = unownedMineStats.distance === undefined ? 0 : unownedMineStats.distance;
-  var unownedMineDirection = unownedMineStats.direction === undefined ? 'Stay' : unownedMineStats.direction;
-  console.log("There is an unowned mine at " + unownedMineDistance + " " + unownedMineDirection);
+  }
 
-
-  //Get the path info object
-  var nonTeamMineStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, littleSelbyK, function(boardTile) {
-    if (boardTile.type === 'DiamondMine') {
-      if (boardTile.owner) {
-        return boardTile.owner.team !== littleSelbyK.team;
-      } else {
-        return true;
-      }
+  var getSouthSpace = function(){
+    space = spaces.pop();
+    if(space.x < 6){
+      spaces.push(space);
+      space = spaces.pop();
+      return getSouthSpace();
     } else {
-      return false;
+      return space;
     }
-  });
-  var nonTeamMineDistance = nonTeamMineStats.distance === undefined ? 0 : nonTeamMineStats.distance;
-  var nonTeamMineDirection = nonTeamMineStats.direction === undefined ? 'Stay' : nonTeamMineStats.direction;
-  console.log("There is an unowned mine at " + nonTeamMineDistance + " " + nonTeamMineDirection);
-
-  console.log(JSON.stringify(littleSelbyK));
-
-  // Fill to 100 when near health well
-  if(littleSelbyK.health < 100 && healthWellDistance === 1)
-    return healthWellDirection;
-  if(strongerEnemyDistance === 2)
-    return opposite(strongerEnemyDirection);
-  if(strongerEnemyDistance === 1)
-    return teamMemberDirection != strongerEnemyDirection ? teamMemberDirection : healthWellDirection;
-  if(weakerEnemyDistance === 2)
-    return weakerEnemyDirection;
-
-  // health good
-  learn(healthWellDirection, -1*healthWellDistance);
-  // team and health good
-  learn(teamMemberDirection, teamMemberDistance);
-  // mines are kinda good
-  learn(mineDirection, mineDistance);
-  learn(unownedMineDirection, unownedMineDistance);
-  learn(nonTeamMineDirection, nonTeamMineDistance);
-  // strong enemies bad
-  learn(strongerEnemyDirection, -1*strongerEnemyDistance);
-  // weak enemies good
-  learn(weakerEnemyDirection, weakerEnemyDistance);
-  // Mines!
-  learn(unownedMineDirection, unownedMineDistance);
-
-  // Low health senario
-  if(littleSelbyK.health < 50){
-    // Health well super good
-    learn(healthWellDirection, 1);
-    // Teak member direction also pretty good
-    learn(teamMemberDirection, 2);
-    // Enemy direction super bad
-    learn(enemyDirection, -1*enemyDistance);
-    // strong enemies super super bad
-    learn(strongerEnemyDirection, -1*strongerEnemyDistance);
-    // even weak enemies bad
-    learn(weakerEnemyDirection, weakerEnemyDistance);
-    // mines are bad
-    learn(mineDirection, -1*mineDistance);
-  } else {
-    // Health and health/protection is always the best option if there's nothing else
-    learn(healthWellDirection, 1);
-    // Teak member direction is always a decent choice
-    learn(teamMemberDirection, 2);
-    // Enemy direction super bad
-    learn(enemyDirection, -1*enemyDistance);
-    // strong enemies super super bad
-    learn(strongerEnemyDirection, -1*strongerEnemyDistance);
-    // even weak enemies bad
-    learn(weakerEnemyDirection, -1*weakerEnemyDistance);
-    // even weak enemies bad
-    learn(mineDirection, -1*mineDistance);
   }
-  console.log('INTUITION');
-  console.log(JSON.stringify(intuition));
-  return withTheWind();
-}*/
 
-//Makes a new game with a 5x5 board
-var game = new Game(12);
-
-var spaces = [];
-
-for(var i = 0; i < 12; ++i)
-  for(var j = 0; j < 12; ++j)
-    spaces.push({x: i, y: j});
-
-var shuffle = function(o){ //v1.0
-    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
-    return o;
-};
-
-spaces = shuffle(spaces);
-
-var addHealthWells = function(min,max){
-  if(min == undefined)
-    min = 5;
-  if(max == undefined)
-    max = 5;
-  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
-    space = spaces.pop();
-    game.addHealthWell(space.x,space.y);
+  var addHealthWells = function(min,max){
+    if(min == undefined)
+      min = 5;
+    if(max == undefined)
+      max = 5;
+    for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+      space = spaces.pop();
+      game.addHealthWell(space.x,space.y);
+    }
   }
+
+  var addMines = function(min,max){
+    if(min == undefined)
+      min = 5;
+    if(max == undefined)
+      max = 5;
+    for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+      space = spaces.pop();
+      game.addDiamondMine(space.x,space.y);
+    }
+  }
+
+  var addEnemies = function(min,max){
+    if(min == undefined)
+      min = 10;
+    if(max == undefined)
+      max = 12;
+    for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+      space = getSouthSpace();
+      moveName = moveNames[Math.floor(Math.random() * moveNames.length)];
+      game.addHero(space.x,space.y, moveName, 1);
+    }
+  }
+
+  var addAllies = function(min,max){
+    if(min == undefined)
+      min = 9;
+    if(max == undefined)
+      max = 11;
+    for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+      space = getNorthSpace();
+      moveName = moveNames[Math.floor(Math.random() * moveNames.length)];
+      game.addHero(space.x,space.y, moveName, 0);
+    }
+  }
+
+  var addImpassables = function(min,max){
+    if(min == undefined)
+      min = 6;
+    if(max == undefined)
+      max = 10;
+    for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
+      space = spaces.pop();
+      game.addImpassable(space.x,space.y);
+    }
+  }
+
+  addHealthWells();
+  addMines();
+  addAllies();
+  addEnemies();
+  addImpassables();
+
+  //Add your hero
+  space = getNorthSpace();
+  game.addHero(space.x,space.y, 'MyHero', 0);
+
+  //console.log('About to start the game!  Here is what the board looks like:');
+  //You can run game.board.inspect() in this test code at any time
+  //to log out the current state of the board (keep in mind that in the actual
+  //game, the game object will not have any functions on it)
+  //game.board.inspect();
 }
 
-var addMines = function(min,max){
-  if(min == undefined)
-    min = 5;
-  if(max == undefined)
-    max = 5;
-  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
-    space = spaces.pop();
-    game.addDiamondMine(space.x,space.y);
-  }
-}
 
-var addEnemies = function(min,max){
-  if(min == undefined)
-    min = 2;
-  if(max == undefined)
-    max = 3;
-  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
-    space = spaces.pop();
-    game.addHero(space.x,space.y, 'Enemy', 1);
-  }
-}
-
-var addImpassables = function(min,max){
-  if(min == undefined)
-    min = 6;
-  if(max == undefined)
-    max = 10;
-  for(var i = Math.floor((Math.random() * max) + min); i > 0; --i){
-    space = spaces.pop();
-    game.addImpassable(space.x,space.y, 'Enemy', 1);
-  }
-}
-
-addHealthWells();
-addMines();
-addEnemies();
-addImpassables();
-
-//Add your hero in the top left corner of the map (team 0)
-game.addHero(0, 0, 'MyHero', 0);
-
-console.log('About to start the game!  Here is what the board looks like:');
-
-//You can run game.board.inspect() in this test code at any time
-//to log out the current state of the board (keep in mind that in the actual
-//game, the game object will not have any functions on it)
-game.board.inspect();
-
-//Play a very short practice game
-var turnsToPlay = 500;
-
-var playGame = function(){
-  var stats = "Stats";
-  var setStats = function(hero){
-    stats = JSON.stringify(hero, null, 2);
-  }
-  setTimeout(function(){
+var playGame = function(turnsToPlay){
+//console.log(JSON.stringify(game.heroes, null, 2));
+  //game.board.inspect();
+  if(turnsToPlay > 0){
     var hero = game.activeHero;
     var direction;
-    if (hero.name === 'MyHero') {
+    if (hero.name == 'MyHero') {
       //Ask your hero brain which way it wants to move
       direction = heroMoveFunction(game, helpers);
-
+      if(hero.dead == true)
+        turnsToPlay = 0;
     } else {
-      direction = enemyMoveFunction(game, helpers);
-    }
-
-
-    if (hero.name === 'MyHero'){
-      setStats(hero);
-      game.board.inspect();
-      console.log('-----');
-      console.log('Turns left: ' + turnsToPlay + ':');
-      console.log('-----');
-      console.log(hero.name + ' tried to move ' + direction);
-      console.log(hero.name + ' owns ' + hero.mineCount + ' diamond mines');
-      console.log(hero.name + ' has ' + hero.health + ' health');
-      console.log(stats);
+      //console.log(JSON.stringify(hero, null, 2));
+      direction = moves[hero.name](game, helpers);
     }
     game.handleHeroTurn(direction);
-    if(turnsToPlay-- > 0)
-      playGame();
-  }, 50);
+    playGame(turnsToPlay-1);
+  } else {
+    game.heroes.forEach(function(gameHero) {
+      //console.log(JSON.stringify(gameHero, null, 2));
+      if(gameHero.name == 'MyHero'){
+        if(gameHero.dead === true)
+          deaths += 1;
+        if(gameHero.won === true)
+          wins += 1;
+        damageDone += gameHero.damageDone;
+        gravesRobbed += gameHero.gravesRobbed;
+        mineCount += gameHero.mineCount;
+        minesCaptured += gameHero.minesCaptured;
+        diamondsEarned += gameHero.diamondsEarned;
+        healthRecovered += gameHero.healthRecovered;
+        healthGiven += gameHero.healthGiven;
+      }
+    });
+  }
 }
 
-playGame();
+var numGames = 1000;
+for(i=0;i<numGames;++i){
+  if(i%10 == 0)
+    console.log(i/numGames*100 + "% done: be patient!");
+  createGame();
+  playGame(1250);
+}
 
-console.log(JSON.stringify(game, null, 2));
+console.log('games: ' + numGames);
+console.log("Deaths: " + deaths/numGames*100 +"%");
+console.log("Wins: " + wins/numGames*100 + "%");
+console.log("damageDone avg: " + damageDone/numGames);
+console.log("gravesRobbed avg: " + gravesRobbed/numGames);
+console.log("mineCount avg: " + mineCount/numGames);
+console.log("diamondsEarned avg: " + diamondsEarned/numGames);
+console.log("healthRecovered avg: " + healthRecovered/numGames);
+console.log("healthGiven avg: " + healthGiven/numGames);
