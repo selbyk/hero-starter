@@ -193,19 +193,19 @@ var moves = {
 var createGame = function(){
   game = new Game(12);
 
+  // Generate a space for each tile
   var spaces = [];
-
   for(var i = 0; i < 12; ++i)
     for(var j = 0; j < 12; ++j)
       spaces.push({x: i, y: j});
-
+  // Shuffle them up to easily create a board
   var shuffle = function(o){ //v1.0
       for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
       return o;
   };
-
   spaces = shuffle(spaces);
 
+  // Get a space in the north
   var getNorthSpace = function(){
     space = spaces.pop();
     if(space.x > 5){
@@ -217,6 +217,7 @@ var createGame = function(){
     }
   }
 
+  // Get a space in teh south
   var getSouthSpace = function(){
     space = spaces.pop();
     if(space.x < 6){
@@ -228,6 +229,7 @@ var createGame = function(){
     }
   }
 
+  // Add some health
   var addHealthWells = function(min,max){
     if(min == undefined)
       min = 5;
@@ -239,6 +241,7 @@ var createGame = function(){
     }
   }
 
+  // Add some mines
   var addMines = function(min,max){
     if(min == undefined)
       min = 5;
@@ -250,6 +253,7 @@ var createGame = function(){
     }
   }
 
+  // Add some enemies
   var addEnemies = function(min,max){
     if(min == undefined)
       min = 10;
@@ -262,6 +266,7 @@ var createGame = function(){
     }
   }
 
+  // Add some allies
   var addAllies = function(min,max){
     if(min == undefined)
       min = 9;
@@ -274,6 +279,7 @@ var createGame = function(){
     }
   }
 
+  // Add some walls
   var addImpassables = function(min,max){
     if(min == undefined)
       min = 6;
@@ -285,6 +291,7 @@ var createGame = function(){
     }
   }
 
+  // You didn't actually do any of that up there yet o.O
   addHealthWells();
   addMines();
   addAllies();
