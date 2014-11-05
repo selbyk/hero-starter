@@ -15,14 +15,22 @@ To run:
     node test_your_hero_code.js
 
   -If you don't see any errors in your terminal, the code works!
-
 */
 
 //Get the helper file and the Game logic
 var helpers = require('./helpers.js');
 var Game = require('./game_logic/Game.js');
 
-var stats = [];
+// Get my hero's move function ("brain")
+var heroMoveFunction = require('./hero.js');
+
+// number games to play
+// it goes a lot faster if you die a lot
+var numGames = 1250;
+// number of turns per game
+var turnsPerGame = 1250;
+
+// stats count
 var deaths = 0;
 var wins = 0;
 var damageDone = 0;
@@ -33,11 +41,10 @@ var diamondsEarned = 0;
 var healthRecovered = 0;
 var healthGiven = 0;
 
-var myHero;
+// This var holds the game, leave it alone
+var game;
 
-//Get my hero's move function ("brain")
-var heroMoveFunction = require('./hero.js');
-
+// These are the other random player's moves
 var moveNames = ['aggressor', 'healthNut',
   'blindMan', 'priest', 'unwiseAssassin', 'carefulAssassin', 'safeDiamondMiner',
   'selfishDiamondMiner'];
@@ -183,9 +190,6 @@ var moves = {
   }
  };
 
-//Makes a new game board
-var game;
-
 var createGame = function(){
   game = new Game(12);
 
@@ -298,7 +302,6 @@ var createGame = function(){
   //game.board.inspect();
 }
 
-
 var playGame = function(turnsToPlay){
 //console.log(JSON.stringify(game.heroes, null, 2));
   //game.board.inspect();
@@ -336,14 +339,14 @@ var playGame = function(turnsToPlay){
   }
 }
 
-var numGames = 1000;
 for(i=0;i<numGames;++i){
   if(i%10 == 0)
     console.log(i/numGames*100 + "% done: be patient!");
   createGame();
-  playGame(1250);
+  playGame(turnsPerGame);
 }
 
+console.log('Heres how your hero did:');
 console.log('games: ' + numGames);
 console.log("Deaths: " + deaths/numGames*100 +"%");
 console.log("Wins: " + wins/numGames*100 + "%");
