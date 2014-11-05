@@ -303,40 +303,42 @@ var createGame = function(){
 }
 
 var playGame = function(turnsToPlay){
-//console.log(JSON.stringify(game.heroes, null, 2));
+  // prints all heros in game
+  // console.log(JSON.stringify(game.heroes, null, 2));
+  // prints board
   //game.board.inspect();
-  if(turnsToPlay > 0){
+  while(turnsToPlay > 0){
     var hero = game.activeHero;
     var direction;
-    if (hero.name == 'MyHero') {
+    if (game.activeHero.name == 'MyHero') {
       //Ask your hero brain which way it wants to move
       direction = heroMoveFunction(game, helpers);
-      if(hero.dead == true)
+      if(game.activeHero.dead == true)
         turnsToPlay = 0;
     } else {
-      //console.log(JSON.stringify(hero, null, 2));
-      direction = moves[hero.name](game, helpers);
+      //console.log(JSON.stringify(game.activeHero, null, 2));
+      direction = moves[game.activeHero.name](game, helpers);
     }
     game.handleHeroTurn(direction);
-    playGame(turnsToPlay-1);
-  } else {
-    game.heroes.forEach(function(gameHero) {
-      //console.log(JSON.stringify(gameHero, null, 2));
-      if(gameHero.name == 'MyHero'){
-        if(gameHero.dead === true)
-          deaths += 1;
-        if(gameHero.won === true)
-          wins += 1;
-        damageDone += gameHero.damageDone;
-        gravesRobbed += gameHero.gravesRobbed;
-        mineCount += gameHero.mineCount;
-        minesCaptured += gameHero.minesCaptured;
-        diamondsEarned += gameHero.diamondsEarned;
-        healthRecovered += gameHero.healthRecovered;
-        healthGiven += gameHero.healthGiven;
-      }
-    });
+    turnsToPlay--;
   }
+  // goes through list of hero to report your hero's stats
+  game.heroes.forEach(function(gameHero) {
+    //console.log(JSON.stringify(gameHero, null, 2));
+    if(gameHero.name == 'MyHero'){
+      if(gameHero.dead === true)
+        deaths += 1;
+      if(gameHero.won === true)
+        wins += 1;
+      damageDone += gameHero.damageDone;
+      gravesRobbed += gameHero.gravesRobbed;
+      mineCount += gameHero.mineCount;
+      minesCaptured += gameHero.minesCaptured;
+      diamondsEarned += gameHero.diamondsEarned;
+      healthRecovered += gameHero.healthRecovered;
+      healthGiven += gameHero.healthGiven;
+    }
+  });
 }
 
 for(i=0;i<numGames;++i){
