@@ -201,3 +201,15 @@ node test_your_hero_code.js
 | Health Recovered | 252.86 per game   |
 | Graves Robbed    | 1.21 per game  |
 
+11.5.2014
+
+| Category | 	Stats |
+| --- | --- |
+| Games Played |	19 |
+| Kills |	1.26 per game |
+| Deaths |	0.42 per game |
+| Damage Dealt |	228.95 per game |
+| Mines Captured |	3.37 per game |
+| Diamonds Earned 	102.68 per game |
+| Health Recovered |	219.47 per game |
+| Graves Robbed |	1 per game |
