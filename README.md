@@ -210,6 +210,6 @@ node test_your_hero_code.js
 | Deaths |	0.42 per game |
 | Damage Dealt |	228.95 per game |
 | Mines Captured |	3.37 per game |
-| Diamonds Earned 	102.68 per game |
+| Diamonds Earned |	102.68 per game |
 | Health Recovered |	219.47 per game |
 | Graves Robbed |	1 per game |
