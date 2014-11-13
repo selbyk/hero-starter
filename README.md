@@ -213,3 +213,17 @@ node test_your_hero_code.js
 | Diamonds Earned |	102.68 per game |
 | Health Recovered |	219.47 per game |
 | Graves Robbed |	1 per game |
+
+11.12.2014 - Not doing so hot.
+
+| Category | Stats |
+| --- | --- |
+| Games Played | 	25 |
+| Kills | 	1.24 per game |
+| Deaths | 	0.44 per game |
+| Damage Dealt | 	264.4 per game |
+| Mines Captured | 	3.16 per game |
+| Diamonds Earned | 	84.12 per game |
+| Health Recovered | 	250 per game |
+| Graves Robbed | 	0.88 per game |
+
